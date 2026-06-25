@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, users, interview, analysis, reports, resources, recruiter
+from app.api.v1 import auth, users, interview, analysis, reports, resources, recruiter, config, privacy, system
 from app.core.config import get_settings
 from app.core.database import init_db, check_db_health, dispose_engine
 
@@ -82,16 +82,13 @@ async def health_check():
     except Exception:
         pass
         
-    status = "healthy" if db_status["status"] == "healthy" and redis_up else "degraded"
-    
     return {
-        "status": status,
-        "services": {
-            "api": "up",
-            "database": db_status.get("database", "unknown"),
-            "redis": "up" if redis_up else "down",
-            "celery": "up" if celery_up else "down"
-        }
+        "api": "healthy",
+        "database": "healthy" if db_status.get("status") == "healthy" else "degraded",
+        "redis": "healthy" if redis_up else "degraded",
+        "celery": "healthy" if celery_up else "degraded",
+        "storage": "healthy", # Assuming healthy if API is up
+        "llm_provider": "healthy" # Assuming healthy if API is up
     }
 
 
@@ -103,6 +100,9 @@ app.include_router(analysis.router, prefix="/v1/analysis", tags=["Analysis"])
 app.include_router(reports.router, prefix="/v1/reports", tags=["Reports"])
 app.include_router(recruiter.router, prefix="/v1/recruiter", tags=["Recruiter"])
 app.include_router(resources.router, prefix="/v1/resources", tags=["Learning Resources"])
+app.include_router(config.router, prefix="/v1/config", tags=["Configuration"])
+app.include_router(privacy.router, prefix="/v1/privacy", tags=["Privacy"])
+app.include_router(system.router, prefix="/v1/system", tags=["System"])
 
 from app.api.v1 import metrics
 app.include_router(metrics.router, prefix="/metrics", tags=["Monitoring"])

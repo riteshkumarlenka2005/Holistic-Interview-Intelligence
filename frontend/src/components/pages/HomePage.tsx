@@ -306,10 +306,10 @@ const HeroSection = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-accent-purple to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </Link>
-              <Link to="/features">
+              <Link to="/demo">
                 <Button variant="outline" className="group w-full sm:w-auto h-14 px-8 border-2 border-foreground/20 text-foreground hover:border-primary hover:text-primary font-heading font-bold text-base rounded-xl backdrop-blur-sm transition-all duration-300">
                   <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  Watch Demo
+                  Try Demo Interview
                 </Button>
               </Link>
             </motion.div>

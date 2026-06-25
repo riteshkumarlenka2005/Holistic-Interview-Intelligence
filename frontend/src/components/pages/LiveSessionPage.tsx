@@ -34,7 +34,8 @@ import {
     FileText,
     AlertTriangle,
     Languages,
-    CheckCircle2
+    CheckCircle2,
+    ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
@@ -74,6 +75,7 @@ export default function LiveSessionPage() {
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [sessionType, setSessionType] = useState<string>('Behavioral');
     const sessionStartTimeRef = useRef<Date | null>(null);
+    const [hasConsented, setHasConsented] = useState(false);
 
     // Video dimensions for face tracking overlay
     const [videoDimensions, setVideoDimensions] = useState({ width: 1280, height: 720 });
@@ -318,11 +320,62 @@ export default function LiveSessionPage() {
                     </Button>
                 </motion.div>
 
-                {/* Header section removed for more vertical space */}
-                {/* Header section removed for more vertical space */}
-
-                {/* Main content */}
-                <div className="grid lg:grid-cols-3 gap-6">
+                {!hasConsented ? (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="max-w-2xl mx-auto bg-gradient-to-br from-background to-gradient-start/10 border border-primary/30 rounded-xl p-8 text-center"
+                    >
+                        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <ShieldCheck className="w-8 h-8 text-primary" />
+                        </div>
+                        <h2 className="text-2xl font-bold font-heading mb-4 text-foreground">Privacy & Consent</h2>
+                        <p className="text-foreground/80 mb-6 leading-relaxed">
+                            To provide you with personalized, AI-driven coaching, this interview platform records and analyzes your session. 
+                            By continuing, you agree to the processing of the following data:
+                        </p>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-left mb-8 max-w-md mx-auto">
+                            <div className="flex items-center gap-3 p-3 bg-foreground/5 rounded-lg border border-foreground/10">
+                                <Mic className="w-5 h-5 text-blue-400" />
+                                <span>Audio & Speech</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-foreground/5 rounded-lg border border-foreground/10">
+                                <Video className="w-5 h-5 text-emerald-400" />
+                                <span>Video & Face</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-foreground/5 rounded-lg border border-foreground/10">
+                                <Eye className="w-5 h-5 text-purple-400" />
+                                <span>Eye Contact</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-foreground/5 rounded-lg border border-foreground/10">
+                                <Brain className="w-5 h-5 text-orange-400" />
+                                <span>Interview Responses</span>
+                            </div>
+                        </div>
+                        
+                        <p className="text-sm text-foreground/60 mb-8 italic">
+                            Your recordings are processed securely to generate your interview feedback. You can delete your recordings and reports at any time from your Profile settings.
+                        </p>
+                        
+                        <div className="flex gap-4 justify-center">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => navigate('/practice')}
+                                className="px-8"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={() => setHasConsented(true)}
+                                className="px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                            >
+                                I Consent, Continue
+                            </Button>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <div className="grid lg:grid-cols-3 gap-6">
                     {/* Video area - 2 columns */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -802,6 +855,7 @@ export default function LiveSessionPage() {
                         </div>
                     </motion.div>
                 </div>
+                )}
             </main >
 
             <Footer />

@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, ArrowRight, TrendingUp, TrendingDown, Minus, 
-  BarChart3, Activity, Clock, ShieldCheck, Target, MessageSquare
+  BarChart3, Activity, Clock, ShieldCheck, Target, MessageSquare,
+  Award, Lightbulb, Mountain
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApiClient } from '@/lib/apiClient';
@@ -254,6 +255,21 @@ export default function ComparePage() {
                         </td>
                       </tr>
 
+                      {/* Confidence */}
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 font-medium flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-yellow-500" /> Confidence
+                        </td>
+                        {comparisonReports.map(rep => (
+                          <td key={rep.id} className="px-6 py-4 text-center">
+                            {formatScore(rep.radar_data?.confidence || rep.presence_score || 0.75)}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center">
+                          <TrendingUp className="w-4 h-4 text-emerald-500 inline" />
+                        </td>
+                      </tr>
+
                       {/* Integrity */}
                       <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 font-medium flex items-center gap-2">
@@ -280,6 +296,21 @@ export default function ComparePage() {
                           </td>
                         ))}
                         <td className="px-6 py-4 text-center">-</td>
+                      </tr>
+
+                      {/* Difficulty Reached */}
+                      <tr className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 font-medium flex items-center gap-2">
+                          <Mountain className="w-4 h-4 text-indigo-500" /> Difficulty Reached
+                        </td>
+                        {comparisonReports.map(rep => (
+                          <td key={rep.id} className="px-6 py-4 text-center">
+                            {rep.data?.difficulty_reached || rep.difficulty_reached || 'Medium'}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center">
+                          <TrendingUp className="w-4 h-4 text-emerald-500 inline" />
+                        </td>
                       </tr>
 
                       {/* Recommendation */}

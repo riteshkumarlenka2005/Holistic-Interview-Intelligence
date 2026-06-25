@@ -113,6 +113,12 @@ class Settings(BaseSettings):
     rate_limit_api: str = "100/minute"
     rate_limit_analysis: str = "5/minute"
     
+    # Feature Flags
+    enable_coaching: bool = True
+    enable_face_analysis: bool = True
+    enable_eye_tracking: bool = True
+    enable_playback: bool = True
+    
     @property
     def is_sqlite(self) -> bool:
         """Check if using SQLite database"""

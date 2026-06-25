@@ -139,6 +139,10 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "demo",
+        element: <LiveSessionPage />
+      },
+      {
         path: "practice/:id",
         element: (
           <MemberProtectedRoute messageToSignIn="Sign in to view session details">

@@ -114,9 +114,12 @@ export function useBehavioralAnalysis(
         }));
     }, [captureFrame]);
 
+    const reconnectCountRef = useRef(0);
+    const reconnectTimeoutRef = useRef<number | null>(null);
+
     // Connect to WebSocket
     const connect = useCallback(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) return;
+        if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
 
         setError(null);
         const wsEndpoint = `${wsUrl}/v1/behavioral/ws/behavioral-analysis/${sessionId}`;
@@ -128,6 +131,7 @@ export function useBehavioralAnalysis(
                 console.log('Behavioral analysis WebSocket connected');
                 setIsConnected(true);
                 setError(null);
+                reconnectCountRef.current = 0; // Reset on success
             };
 
             ws.onmessage = (event) => {
@@ -173,6 +177,13 @@ export function useBehavioralAnalysis(
                 console.log('WebSocket closed');
                 setIsConnected(false);
                 setIsAnalyzing(false);
+                
+                // Exponential backoff reconnection
+                if (reconnectCountRef.current < 5) {
+                    const timeout = Math.pow(2, reconnectCountRef.current) * 1000;
+                    reconnectTimeoutRef.current = window.setTimeout(connect, timeout);
+                    reconnectCountRef.current += 1;
+                }
             };
 
             wsRef.current = ws;
@@ -226,6 +237,9 @@ export function useBehavioralAnalysis(
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
+            }
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
             }
             if (wsRef.current) {
                 wsRef.current.close();

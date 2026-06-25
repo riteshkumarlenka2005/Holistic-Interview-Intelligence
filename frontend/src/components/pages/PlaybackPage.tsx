@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   Play, Pause, FastForward, Rewind, SkipBack, ArrowLeft,
   Download, Share2, Video, MessageSquare, ShieldAlert,
-  BrainCircuit, Activity, BarChart3, ChevronDown
+  BrainCircuit, Activity, BarChart3, ChevronDown, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApiClient } from '@/lib/apiClient';

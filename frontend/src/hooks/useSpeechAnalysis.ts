@@ -138,9 +138,12 @@ export function useSpeechAnalysis(
         }
     }, [blobToBase64]);
 
+    const reconnectCountRef = useRef(0);
+    const reconnectTimeoutRef = useRef<number | null>(null);
+
     // Connect to WebSocket
     const connect = useCallback(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) return;
+        if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
 
         setError(null);
         const wsEndpoint = `${wsUrl}/v1/speech/ws/speech-analysis/${sessionId}`;
@@ -152,6 +155,7 @@ export function useSpeechAnalysis(
                 console.log('[SpeechAnalysis] WebSocket connected');
                 setIsConnected(true);
                 setError(null);
+                reconnectCountRef.current = 0;
             };
 
             ws.onmessage = (event) => {
@@ -220,6 +224,13 @@ export function useSpeechAnalysis(
                 console.log('[SpeechAnalysis] WebSocket closed');
                 setIsConnected(false);
                 setIsAnalyzing(false);
+                
+                // Exponential backoff reconnection
+                if (reconnectCountRef.current < 5) {
+                    const timeout = Math.pow(2, reconnectCountRef.current) * 1000;
+                    reconnectTimeoutRef.current = window.setTimeout(connect, timeout);
+                    reconnectCountRef.current += 1;
+                }
             };
 
             wsRef.current = ws;
@@ -328,6 +339,9 @@ export function useSpeechAnalysis(
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
+            }
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
             }
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
                 mediaRecorderRef.current.stop();

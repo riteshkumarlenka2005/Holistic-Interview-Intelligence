@@ -99,7 +99,27 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-```
+
+3.  Set up the infrastructure:
+    ```bash
+    cd infrastructure
+    docker-compose -f docker-compose.prod.yml up -d
+    ```
+
+## Development Timeline
+
+| Phase | Weeks | Focus Area |
+| :--- | :--- | :--- |
+| **Foundation** | 1–3 | Architecture Planning, Backend API, Database, Auth |
+| **Brain** | 4–6 | Core Interview Orchestrator & LLM Integration |
+| **Engines** | 7–9 | Speech, Vision, Technical, & Communication AI |
+| **Insights** | 10–12 | Report Generation, Coaching, Timeline |
+| **UX/UI** | 13–14 | Dashboards, Playback, Frontend Integration |
+| **Release** | 15+ | Release Candidate, Telemetry, Beta Testing |
+
+## Future Development
+
+For a comprehensive list of ideas, planned features, and architectural improvements, see [V2_IDEAS.md](V2_IDEAS.md). For engineering insights and future beta feedback, see [LESSONS_LEARNED.md](LESSONS_LEARNED.md).
 
 ## 📚 Documentation
 

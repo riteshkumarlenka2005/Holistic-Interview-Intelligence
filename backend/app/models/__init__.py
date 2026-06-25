@@ -49,6 +49,7 @@ from app.models.reports import Report
 from app.models.analytics import AnalyticsSnapshot
 from app.models.jobs import AnalysisJob
 from app.models.integrity import IntegrityEvent
+from app.models.llm_tracking import LLMRequest
 
 __all__ = [
     # Base
@@ -64,5 +65,5 @@ __all__ = [
     "SpeechMetrics", "FaceMetrics", "EyeTrackingData", "EmotionTimeline",
     "ConfidenceTimeline", "TechnicalScore", "CommunicationScore",
     "ProctoringAlert", "ProctoringSession", "CoachingEvent",
-    "Report", "AnalyticsSnapshot", "AnalysisJob", "IntegrityEvent",
+    "Report", "AnalyticsSnapshot", "AnalysisJob", "IntegrityEvent", "LLMRequest"
 ]
