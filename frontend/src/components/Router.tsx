@@ -1,5 +1,5 @@
 import { MemberProvider } from '@/integrations';
-import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { createBrowserRouter, createMemoryRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ScrollToTop } from '@/lib/scroll-to-top';
 import ErrorPage from '@/integrations/errorHandlers/ErrorPage';
 import { MemberProtectedRoute } from '@/components/ui/member-protected-route';
@@ -105,7 +105,7 @@ function Layout() {
   );
 }
 
-const router = createBrowserRouter([
+const routes: any = [
   {
     path: "/",
     element: <Layout />,
@@ -248,9 +248,12 @@ const router = createBrowserRouter([
       },
     ],
   },
-], {
-  basename: import.meta.env.BASE_NAME,
-});
+];
+
+// Initialize router only in browser environment to prevent Vercel SSR crashes
+const router = typeof window !== 'undefined' 
+  ? createBrowserRouter(routes, { basename: import.meta.env.BASE_NAME })
+  : createMemoryRouter(routes, { initialEntries: ['/'] });
 
 export default function AppRouter() {
   return (
