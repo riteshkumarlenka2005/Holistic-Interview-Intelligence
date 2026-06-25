@@ -18,7 +18,8 @@ jobs:
     
     strategy:
       matrix:
-        service: [frontend, backend]
+        # Frontend is deployed via Vercel, only backend needs Docker
+        service: [backend]
     
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +55,5 @@ jobs:
       
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
           kubectl set image deployment/backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
-          kubectl rollout status deployment/frontend
           kubectl rollout status deployment/backend
