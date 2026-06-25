@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: riteshkumarlenka2005/holistic-interview-intelligence
 
 jobs:
   build-and-push:
