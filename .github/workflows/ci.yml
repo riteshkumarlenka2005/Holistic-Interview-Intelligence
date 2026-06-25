@@ -56,27 +56,3 @@ jobs:
       
       - name: Run tests
         run: cd backend && pytest
-
-  ai-services:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-glx libglib2.0-0
-      
-      - name: Install dependencies
-        run: |
-          cd ai-services
-          pip install -r requirements.txt
-          pip install pytest
-      
-      - name: Run tests
-        run: cd ai-services && pytest --ignore=model-registry

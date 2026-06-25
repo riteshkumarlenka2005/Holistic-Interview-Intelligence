@@ -3,6 +3,7 @@
  * Uses OpenRouter API (same as question generation) for reliable responses
  */
 import type { APIRoute } from 'astro';
+export const prerender = false;
 
 const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
