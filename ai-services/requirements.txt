@@ -1,0 +1,30 @@
+# AI Services Dependencies
+
+# Speech Analysis
+openai-whisper>=20231117
+librosa>=0.10.1
+soundfile>=0.12.1
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Vision Analysis
+mediapipe>=0.10.9
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# Multimodal & LLM
+openai>=1.6.0
+google-generativeai>=0.3.0
+tiktoken>=0.5.1
+transformers>=4.36.0
+torch>=2.1.0
+
+# Explainability
+lime>=0.2.0.1
+shap>=0.44.0
+
+# Utilities
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+aiofiles>=23.2.0
+httpx>=0.25.0

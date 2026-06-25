@@ -1,0 +1,23 @@
+/* Premium Font Stack - Inter (paragraphs) + Outfit (headings) from Google Fonts */
+
+/* Outfit - Premium Geometric Sans-Serif for Headings */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+/* Inter - Highly Readable Sans-Serif for Body Text */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* Fallback for helvetica-w01-bold */
+@font-face {
+    font-family: 'helvetica-w01-bold';
+    font-style: normal;
+    font-weight: 700;
+    src: local('Outfit'), local('Inter');
+}
+
+/* Fallback for helvetica-w01-roman */
+@font-face {
+    font-family: 'helvetica-w01-roman';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Inter'), local('Outfit');
+}

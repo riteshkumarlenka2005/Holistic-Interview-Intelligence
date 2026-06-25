@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Speech Analysis</title>
+</head>
+<body>
+  <h2>Live Speech Analysis</h2>
+  <button id="startBtn">Start Streaming</button>
+  <button id="stopBtn" disabled>Stop</button>
+
+  <h3>Partial Transcript:</h3>
+  <p id="partial"></p>
+
+  <h3>Full Transcript:</h3>
+  <p id="full"></p>
+
+  <h3>Analysis:</h3>
+  <ul>
+    <li>Grammar Score: <span id="grammar"></span></li>
+    <li>Fillers: <span id="fillers"></span></li>
+    <li>Nervousness: <span id="nervous"></span></li>
+    <li>Confidence: <span id="confidence"></span></li>
+  </ul>
+
+  <script>
+    let ws;
+    let mediaRecorder;
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    const partialEl = document.getElementById("partial");
+    const fullEl = document.getElementById("full");
+    const grammarEl = document.getElementById("grammar");
+    const fillersEl = document.getElementById("fillers");
+    const nervousEl = document.getElementById("nervous");
+    const confidenceEl = document.getElementById("confidence");
+
+    startBtn.onclick = async () => {
+      ws = new WebSocket("ws://localhost:8000/live-analyze");
+
+      ws.onopen = async () => {
+        console.log("WebSocket connected");
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            event.data.arrayBuffer().then(buffer => ws.send(buffer));
+          }
+        };
+
+        mediaRecorder.start(250); // send chunks every 250ms
+        stopBtn.disabled = false;
+        startBtn.disabled = true;
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.error) { console.error(data.error); return; }
+
+        partialEl.textContent = data.partial_transcript;
+        fullEl.textContent = data.full_transcript;
+        grammarEl.textContent = data.grammar_score;
+        fillersEl.textContent = data.fillers;
+        nervousEl.textContent = data.nervousness;
+        confidenceEl.textContent = data.confidence;
+      };
+
+      ws.onclose = () => console.log("WebSocket disconnected");
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      ws.close();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+  </script>
+</body>
+</html>

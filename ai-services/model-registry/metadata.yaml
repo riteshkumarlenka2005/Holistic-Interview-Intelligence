@@ -1,0 +1,30 @@
+# AI Services Model Registry
+
+models:
+  whisper:
+    name: "Whisper Large v3"
+    version: "1.0.0"
+    type: "speech-to-text"
+    path: "./versions/whisper-large-v3"
+    status: "active"
+    
+  face-detector:
+    name: "MediaPipe Face Mesh"
+    version: "0.10.0"
+    type: "face-detection"
+    status: "active"
+    
+  expression-model:
+    name: "FER Expression Model"
+    version: "1.0.0"
+    type: "expression-recognition"
+    status: "active"
+    
+  confidence-scorer:
+    name: "Interview Confidence Model"
+    version: "0.1.0"
+    type: "scoring"
+    status: "development"
+
+registry_version: "1.0.0"
+last_updated: "2024-01-01"

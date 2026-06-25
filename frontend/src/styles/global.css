@@ -1,0 +1,565 @@
+@import './fonts.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   THEME CSS VARIABLES
+   ======================================== */
+
+:root {
+  --background: #F5F4FA;
+  --background-light: #FAFBFF;
+  /* DEEPER text colors for crystal clear visibility */
+  --foreground: #0A0A15;
+  --foreground-muted: #2A2A40;
+  --card-bg: #FFFFFF;
+  --border-color: #E0DCF0;
+  --secondary: #E8E5F5;
+  --secondary-foreground: #1A1A28;
+  /* More saturated primary for punch */
+  --primary: #5B4CD9;
+  --primary-light: #7B6CE8;
+  --primary-lighter: #A8A0F0;
+  --accent-purple: #6B5DD8;
+  --accent-light: #D4CCFF;
+  --shadow-soft: rgba(91, 76, 217, 0.1);
+}
+
+/* DARK THEME - High contrast for crystal clear visibility */
+.dark {
+  --background: #08080F;
+  --background-light: #10101C;
+  --foreground: #FFFFFF;
+  --foreground-muted: #C8C8E0;
+  --card-bg: #14142A;
+  --border-color: #28284A;
+  --secondary: #1C1C38;
+  --secondary-foreground: #F0F0FC;
+  --primary: #A090FF;
+  --primary-light: #B8ACFF;
+  --primary-lighter: #D0C8FF;
+  --accent-purple: #B0A0FF;
+  --accent-light: #3D3D70;
+  --shadow-soft: rgba(160, 144, 255, 0.18);
+}
+
+/* ========================================
+   BASE STYLES WITH THEME AWARENESS
+   ======================================== */
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  font-weight: 500;
+  color: var(--foreground);
+  background-color: var(--background);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ========================================
+   TYPOGRAPHY - CRYSTAL CLEAR IN ALL THEMES
+   ======================================== */
+
+/* Clean headings - extra bold for visibility */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--foreground);
+}
+
+h1.font-heading,
+h2.font-heading,
+h3.font-heading {
+  font-weight: 900 !important;
+}
+
+/* Paragraph text - readable in all themes */
+p {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.dark p {
+  font-weight: 500;
+}
+
+/* Font classes */
+.font-heading {
+  font-weight: 900 !important;
+  color: var(--foreground);
+}
+
+.font-paragraph {
+  font-weight: 600;
+}
+
+.dark .font-paragraph {
+  font-weight: 500;
+}
+
+/* Ensure crisp text rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   COLOR CLASS OVERRIDES FOR DARK MODE
+   ======================================== */
+
+/* Background colors */
+.bg-background {
+  background-color: var(--background) !important;
+}
+
+.bg-background-light {
+  background-color: var(--background-light) !important;
+}
+
+.bg-card-bg {
+  background-color: var(--card-bg) !important;
+}
+
+.dark .bg-card-bg\/80 {
+  background-color: rgba(22, 22, 42, 0.9) !important;
+}
+
+.dark .bg-card-bg\/95 {
+  background-color: rgba(22, 22, 42, 0.97) !important;
+}
+
+.bg-secondary {
+  background-color: var(--secondary) !important;
+}
+
+.dark .bg-secondary\/5 {
+  background-color: rgba(30, 30, 53, 0.5) !important;
+}
+
+.dark .bg-secondary\/30 {
+  background-color: rgba(30, 30, 53, 0.6) !important;
+}
+
+.dark .bg-secondary\/50 {
+  background-color: rgba(30, 30, 53, 0.7) !important;
+}
+
+/* Text colors - HIGH CONTRAST for dark mode */
+.text-foreground {
+  color: var(--foreground) !important;
+}
+
+.text-foreground-muted {
+  color: var(--foreground-muted) !important;
+}
+
+.dark .text-foreground-muted {
+  color: #C8C8E0 !important;
+}
+
+.text-foreground\/60,
+.text-foreground\/70 {
+  color: var(--foreground-muted) !important;
+}
+
+.dark .text-foreground\/60,
+.dark .text-foreground\/70 {
+  color: #B0B0CC !important;
+}
+
+/* Secondary foreground */
+.text-secondary-foreground {
+  color: var(--secondary-foreground) !important;
+}
+
+/* Primary colors */
+.text-primary {
+  color: var(--primary) !important;
+}
+
+.text-primary-light {
+  color: var(--primary-light) !important;
+}
+
+.bg-primary {
+  background-color: var(--primary) !important;
+}
+
+.dark .bg-primary {
+  background-color: #7C6AE8 !important;
+}
+
+.dark .bg-primary\/3,
+.dark .bg-primary\/5 {
+  background-color: rgba(155, 139, 255, 0.15) !important;
+}
+
+.dark .bg-primary\/10 {
+  background-color: rgba(155, 139, 255, 0.2) !important;
+}
+
+/* Border colors */
+.border-border-color {
+  border-color: var(--border-color) !important;
+}
+
+.dark .border-border-color\/30 {
+  border-color: rgba(42, 42, 69, 0.6) !important;
+}
+
+.dark .border-border-color\/50 {
+  border-color: rgba(42, 42, 69, 0.8) !important;
+}
+
+.dark .border-primary\/20 {
+  border-color: rgba(155, 139, 255, 0.35) !important;
+}
+
+.dark .border-primary\/30 {
+  border-color: rgba(155, 139, 255, 0.45) !important;
+}
+
+/* Primary lighter backgrounds */
+.dark .bg-primary-lighter\/10,
+.dark .bg-primary-lighter\/20,
+.dark .bg-primary-lighter\/30 {
+  background-color: rgba(155, 139, 255, 0.15) !important;
+}
+
+/* Accent light */
+.dark .bg-accent-light\/5,
+.dark .bg-accent-light\/10,
+.dark .bg-accent-light\/15 {
+  background-color: rgba(61, 61, 107, 0.4) !important;
+}
+
+/* ========================================
+   CARD & CONTAINER STYLES
+   ======================================== */
+
+/* Ensure all cards are visible in dark mode */
+.dark [class*="bg-card-bg"] {
+  background-color: var(--card-bg) !important;
+}
+
+.dark [class*="rounded-2xl"][class*="bg-"] {
+  background-color: var(--card-bg);
+}
+
+.dark [class*="border"][class*="rounded"] {
+  border-color: var(--border-color);
+}
+
+/* ========================================
+   BUTTON STYLES FOR DARK MODE
+   ======================================== */
+
+.dark .hover\:bg-secondary:hover {
+  background-color: rgba(30, 30, 53, 0.8) !important;
+}
+
+/* ========================================
+   GRADIENT OVERRIDES
+   ======================================== */
+
+.dark .from-background {
+  --tw-gradient-from: var(--background) !important;
+}
+
+.dark .to-background {
+  --tw-gradient-to: var(--background) !important;
+}
+
+.dark .via-background\/80 {
+  --tw-gradient-via: rgba(10, 10, 18, 0.8) !important;
+}
+
+.dark .via-transparent {
+  --tw-gradient-via: transparent !important;
+}
+
+/* ========================================
+   SPECIFIC COMPONENT FIXES
+   ======================================== */
+
+/* Intelligence Interlude boards - ensure card visibility */
+.dark section[aria-label="Intelligence Insights"] .bg-card-bg\/80 {
+  background-color: rgba(22, 22, 42, 0.95) !important;
+}
+
+/* Header/Navbar in dark mode */
+.dark header {
+  background-color: rgba(22, 22, 42, 0.97) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Footer in dark mode */
+.dark footer {
+  background-color: var(--background) !important;
+}
+
+/* Grid backgrounds */
+.dark [style*="linear-gradient"] {
+  opacity: 0.03;
+}
+
+/* Blur glow effects in dark mode */
+.dark .blur-\[120px\],
+.dark .blur-\[150px\] {
+  opacity: 0.3;
+}
+
+/* ========================================
+   UTILITY CLASSES FOR TEXT VISIBILITY
+   ======================================== */
+
+.text-bold-visible {
+  font-weight: 700 !important;
+  color: var(--foreground) !important;
+}
+
+.text-extra-visible {
+  font-weight: 800 !important;
+  color: var(--foreground) !important;
+  letter-spacing: 0.01em;
+}
+
+/* ========================================
+   SMOOTH TRANSITIONS FOR THEME SWITCHING
+   ======================================== */
+
+.bg-background,
+.bg-background-light,
+.bg-card-bg,
+.bg-secondary,
+.text-foreground,
+.text-foreground-muted,
+.border-border-color,
+header,
+footer,
+main,
+section {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ========================================
+   ENSURE WHITE TEXT ON COLORED BUTTONS
+   ======================================== */
+
+.bg-primary,
+.hover\:bg-accent-purple:hover {
+  color: white !important;
+}
+
+/* ========================================
+   FORM ELEMENTS IN DARK MODE
+   ======================================== */
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--foreground);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--foreground-muted);
+}
+
+/* ========================================
+   SCROLLBAR STYLING FOR DARK MODE
+   ======================================== */
+
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* ========================================
+   MARQUEE ANIMATION FOR TRUSTED COMPANIES
+   ======================================== */
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-33.33%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Slower marquee for testimonials */
+.animate-marquee-slow {
+  display: flex;
+  animation: marquee 60s linear infinite;
+}
+
+.animate-marquee-slow:hover {
+  animation-play-state: paused;
+}
+
+/* Reverse direction marquee */
+@keyframes marquee-reverse {
+  0% {
+    transform: translateX(-33.33%);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee-reverse {
+  display: flex;
+  animation: marquee-reverse 60s linear infinite;
+}
+
+.animate-marquee-reverse:hover {
+  animation-play-state: paused;
+}
+
+/* ========================================
+   PREMIUM UI ENHANCEMENTS
+   ======================================== */
+
+/* Glassmorphism card effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass-card {
+  background: rgba(22, 22, 42, 0.7);
+  border: 1px solid rgba(155, 139, 255, 0.2);
+}
+
+/* Grid pattern overlay for industrial look */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(108, 92, 231, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(108, 92, 231, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.dark .grid-pattern {
+  background-image:
+    linear-gradient(rgba(155, 139, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155, 139, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Subtle noise texture for premium feel */
+.noise-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+}
+
+/* Glow effect on hover */
+.glow-hover:hover {
+  box-shadow: 0 0 30px rgba(108, 92, 231, 0.15);
+}
+
+.dark .glow-hover:hover {
+  box-shadow: 0 0 30px rgba(155, 139, 255, 0.2);
+}
+
+/* Animated gradient border */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary), var(--accent-purple), var(--primary-light));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+}
+
+/* Premium shadow effects */
+.shadow-premium {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.02),
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 4px 8px rgba(0, 0, 0, 0.02),
+    0 8px 16px rgba(0, 0, 0, 0.02),
+    0 16px 32px rgba(0, 0, 0, 0.02);
+}
+
+.dark .shadow-premium {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.08),
+    0 16px 32px rgba(0, 0, 0, 0.06);
+}
+
+/* ========================================
+   GRADIENT TEXT ANIMATION FOR HERO HEADLINE
+   ======================================== */
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient 4s ease infinite;
+}

@@ -1,0 +1,76 @@
+############################
+# Logs
+############################
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################
+# OS / Editor junk
+############################
+.DS_Store
+Thumbs.db
+.idea/
+.history/
+
+############################
+# Build outputs
+############################
+dist/
+out/
+.astro/
+.wix/
+
+############################
+# Dependencies
+############################
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+############################
+# Environment variables
+############################
+.env
+.env.*
+.env.local
+.env.production
+
+############################
+# Python
+############################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+############################
+# Virtual Environments
+############################
+.venv/
+venv/
+**/Live-venv/
+**/*-venv/
+**/venv/
+
+############################
+# Temp / Media
+############################
+temp/
+*.m4a
+*.db
+astro-check-output.txt
+build-check.txt
+
+############################
+# Tool-specific
+############################
+*/.vibe/ignored/*
