@@ -23,6 +23,7 @@ dist/
 out/
 .astro/
 .wix/
+.vercel/
 
 ############################
 # Dependencies
