@@ -44,7 +44,7 @@ DEMO_USERS = [
         "password": "Coach123!",
         "first_name": "Interview",
         "last_name": "Coach",
-        "role": UserRole.COACH.value,
+        "role": UserRole.RECRUITER.value,
         "is_verified": True,
     },
     {
@@ -52,7 +52,7 @@ DEMO_USERS = [
         "password": "Student123!",
         "first_name": "Demo",
         "last_name": "Student",
-        "role": UserRole.STUDENT.value,
+        "role": UserRole.CANDIDATE.value,
         "is_verified": True,
     },
     {
@@ -60,7 +60,7 @@ DEMO_USERS = [
         "password": "Newuser123!",
         "first_name": "New",
         "last_name": "User",
-        "role": UserRole.STUDENT.value,
+        "role": UserRole.CANDIDATE.value,
         "is_verified": False,
     },
 ]

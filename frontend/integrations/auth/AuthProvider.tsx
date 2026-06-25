@@ -119,6 +119,7 @@ export const MemberProvider: React.FC<MemberProviderProps> = ({ children }) => {
       avatar: user.avatar_url,
       isVerified: user.is_verified,
       oauthProvider: user.oauth_provider,
+      role: user.role,
       createdAt: new Date(user.created_at),
       updatedAt: new Date(),
       profile: {

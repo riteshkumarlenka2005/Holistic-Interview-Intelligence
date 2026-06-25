@@ -11,6 +11,7 @@ export interface Member {
   avatar?: string;
   isVerified: boolean;
   oauthProvider: 'local' | 'google' | 'github';
+  role?: string;
   createdAt: Date;
   updatedAt: Date;
   profile?: MemberProfile;

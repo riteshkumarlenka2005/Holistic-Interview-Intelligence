@@ -4,6 +4,9 @@ import { ScrollToTop } from '@/lib/scroll-to-top';
 import ErrorPage from '@/integrations/errorHandlers/ErrorPage';
 import { MemberProtectedRoute } from '@/components/ui/member-protected-route';
 import { AnimatePresence, motion } from 'framer-motion';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 // Pages
 import HomePage from '@/components/pages/HomePage';
@@ -25,6 +28,9 @@ import VerifyEmailPage from '@/components/pages/VerifyEmailPage';
 import ForgotPasswordPage from '@/components/pages/ForgotPasswordPage';
 import OAuthCallbackPage from '@/components/pages/OAuthCallbackPage';
 import LiveSessionPage from '@/components/pages/LiveSessionPage';
+import RecruiterDashboardPage from '@/components/pages/RecruiterDashboardPage';
+import PlaybackPage from '@/components/pages/PlaybackPage';
+import ComparePage from '@/components/pages/ComparePage';
 
 // Page transition variants
 const pageVariants: any = {
@@ -143,8 +149,32 @@ const router = createBrowserRouter([
       {
         path: "dashboard",
         element: (
-          <MemberProtectedRoute messageToSignIn="Sign in to access your dashboard">
+          <MemberProtectedRoute messageToSignIn="Sign in to access your dashboard" requiredRole="candidate">
             <DashboardPage />
+          </MemberProtectedRoute>
+        ),
+      },
+      {
+        path: "recruiter",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in as recruiter" requiredRole="recruiter">
+            <RecruiterDashboardPage />
+          </MemberProtectedRoute>
+        ),
+      },
+      {
+        path: "reports/:sessionId/playback",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to view playback">
+            <PlaybackPage />
+          </MemberProtectedRoute>
+        ),
+      },
+      {
+        path: "reports/:sessionId/compare",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to compare">
+            <ComparePage />
           </MemberProtectedRoute>
         ),
       },
@@ -220,8 +250,10 @@ const router = createBrowserRouter([
 
 export default function AppRouter() {
   return (
-    <MemberProvider>
-      <RouterProvider router={router} />
-    </MemberProvider>
+    <QueryClientProvider client={queryClient}>
+      <MemberProvider>
+        <RouterProvider router={router} />
+      </MemberProvider>
+    </QueryClientProvider>
   );
 }

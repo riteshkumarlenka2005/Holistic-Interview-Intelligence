@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import auth, users, interview, analysis, reports, resources
+from app.api.v1 import auth, users, interview, analysis, reports, resources, recruiter
 from app.core.config import get_settings
 from app.core.database import init_db, check_db_health, dispose_engine
 
@@ -101,6 +101,7 @@ app.include_router(users.router, prefix="/v1/users", tags=["Users"])
 app.include_router(interview.router, prefix="/v1/interviews", tags=["Interviews"])
 app.include_router(analysis.router, prefix="/v1/analysis", tags=["Analysis"])
 app.include_router(reports.router, prefix="/v1/reports", tags=["Reports"])
+app.include_router(recruiter.router, prefix="/v1/recruiter", tags=["Recruiter"])
 app.include_router(resources.router, prefix="/v1/resources", tags=["Learning Resources"])
 
 from app.api.v1 import metrics

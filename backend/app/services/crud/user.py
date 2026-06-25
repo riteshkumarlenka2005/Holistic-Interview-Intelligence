@@ -49,7 +49,7 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
         password_hash=get_password_hash(user_data.password),
         first_name=user_data.first_name,
         last_name=user_data.last_name,
-        role=UserRole.STUDENT.value,
+        role=UserRole.CANDIDATE.value,
         is_verified=False
     )
     db.add(user)

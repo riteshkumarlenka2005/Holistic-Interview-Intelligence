@@ -43,7 +43,7 @@ class UserUpdate(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     """Schema for updating user role (admin only)"""
-    role: str = Field(..., pattern='^(student|admin|coach)$')
+    role: str = Field(..., pattern='^(candidate|admin|recruiter)$')
 
 
 class UserRead(UserBase):

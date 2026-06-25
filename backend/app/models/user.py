@@ -15,9 +15,9 @@ from app.models.base import BaseModel
 
 class UserRole(str, enum.Enum):
     """User roles for access control"""
-    STUDENT = "student"
+    CANDIDATE = "candidate"
     ADMIN = "admin"
-    COACH = "coach"
+    RECRUITER = "recruiter"
 
 
 class OAuthProvider(str, enum.Enum):
@@ -50,7 +50,7 @@ class User(BaseModel):
     avatar_url = Column(String(500), nullable=True)
     
     # Role and status
-    role = Column(String(20), default=UserRole.STUDENT.value, nullable=False)
+    role = Column(String(20), default=UserRole.CANDIDATE.value, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     
@@ -85,9 +85,9 @@ class User(BaseModel):
         return self.role == UserRole.ADMIN.value
     
     @property
-    def is_coach(self) -> bool:
-        """Check if user has coach role"""
-        return self.role == UserRole.COACH.value
+    def is_recruiter(self) -> bool:
+        """Check if user has recruiter role"""
+        return self.role == UserRole.RECRUITER.value
     
     def __repr__(self):
         return f"<User {self.email}>"

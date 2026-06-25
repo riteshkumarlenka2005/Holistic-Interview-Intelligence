@@ -25,6 +25,7 @@ class ExportFormat(str, Enum):
     PDF = "pdf"
     HTML = "html"
     MARKDOWN = "markdown"
+    CSV = "csv"
 
 
 class ReportType(str, Enum):
@@ -378,12 +379,78 @@ async def export_report(
             }
         )
     
+    elif format == ExportFormat.CSV:
+        csv_content = generate_csv_report(data)
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=report_{report_id}.csv"
+            }
+        )
+        
     elif format == ExportFormat.PDF:
         # PDF generation would require additional libraries
         raise HTTPException(
             status_code=501, 
             detail="PDF export requires additional setup. Use HTML or Markdown."
         )
+
+@router.get("/session/{session_id}/insights", summary="Get AI Insights for Candidate Dashboard")
+async def get_session_insights(
+    session_id: str = Path(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get summarized AI insights for the candidate based on latest reports."""
+    from sqlalchemy.future import select
+    from app.models.reports import Report
+
+    query = select(Report).where(Report.user_id == current_user.id).order_by(Report.created_at.desc())
+    result = await db.execute(query)
+    user_reports = result.scalars().all()
+    
+    if not user_reports:
+        return {
+            "insights": [
+                "Complete an interview to receive AI insights.",
+                "Your readiness score will be calculated based on your performance."
+            ]
+        }
+        
+    latest_report = user_reports[0]
+    data = latest_report.data or {}
+    readiness = data.get("readiness_score", 0)
+    
+    # Calculate some mock trend data if multiple reports
+    insights = []
+    
+    if len(user_reports) > 1:
+        prev_data = user_reports[1].data or {}
+        prev_readiness = prev_data.get("readiness_score", 0)
+        diff = readiness - prev_readiness
+        if diff > 0:
+            insights.append(f"Your readiness score improved by {diff}% since your last interview.")
+        elif diff < 0:
+            insights.append(f"Your readiness score decreased by {abs(diff)}% since your last interview.")
+            
+    radar = data.get("radar_data", {})
+    if radar:
+        best_skill = max(radar.items(), key=lambda x: x[1])
+        worst_skill = min(radar.items(), key=lambda x: x[1])
+        insights.append(f"Your strongest area is {best_skill[0].title()} ({best_skill[1]}).")
+        insights.append(f"Focus on improving {worst_skill[0].title()} ({worst_skill[1]}).")
+        
+    if readiness >= 80:
+        insights.append("You are interview-ready for most positions.")
+    elif readiness >= 60:
+        insights.append("You are making good progress. Keep practicing.")
+    else:
+        insights.append("You have significant room for improvement. Follow the learning roadmap.")
+        
+    return {
+        "insights": insights
+    }
 
 
 @router.get("/{report_id}/summary")
@@ -513,3 +580,42 @@ def generate_html_report(report: Dict) -> str:
     <ul>{improvements_html}</ul>
 </body>
 </html>"""
+
+def generate_csv_report(report: Dict) -> str:
+    """Generate CSV report"""
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(["Metric", "Score", "Notes"])
+    
+    # Write overall
+    score = report.get('overall_score', 0)
+    readiness = report.get('readiness_score', int(score * 100))
+    writer.writerow(["Overall Readiness", f"{readiness}%", ""])
+    
+    # Write radar/components
+    radar = report.get("radar_data", {})
+    if radar:
+        for key, val in radar.items():
+            writer.writerow([key.title(), f"{val}%", ""])
+    else:
+        writer.writerow(["Communication", f"{report.get('communication_score', 0):.0%}", ""])
+        writer.writerow(["Presence", f"{report.get('presence_score', 0):.0%}", ""])
+        writer.writerow(["Engagement", f"{report.get('engagement_score', 0):.0%}", ""])
+        writer.writerow(["Authenticity", f"{report.get('authenticity_score', 0):.0%}", ""])
+    
+    writer.writerow([])
+    writer.writerow(["Strengths", "", ""])
+    for s in report.get("strengths", []):
+        writer.writerow(["", "", s])
+        
+    writer.writerow([])
+    writer.writerow(["Areas for Improvement", "", ""])
+    for a in report.get("areas_for_improvement", []):
+        writer.writerow(["", "", a])
+        
+    return output.getvalue()
