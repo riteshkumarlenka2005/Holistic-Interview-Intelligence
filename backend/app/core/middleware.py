@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 import time
 import uuid
 
@@ -8,6 +9,10 @@ from app.core.logging import logger, set_request_id
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Skip WebSocket connections — BaseHTTPMiddleware doesn't support them
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
+
         # Extract or generate request ID
         req_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         set_request_id(req_id)
@@ -46,12 +51,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Skip WebSocket connections
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
         return response
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -62,6 +69,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window = window
 
     async def dispatch(self, request: Request, call_next):
+        # Skip WebSocket connections
+        if request.scope.get("type") == "websocket":
+            return await call_next(request)
+
         if not self.redis_client:
             return await call_next(request)
             

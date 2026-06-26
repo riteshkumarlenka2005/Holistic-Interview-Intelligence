@@ -120,9 +120,10 @@ export function useSpeechAnalysis(
         if (audioChunksRef.current.length === 0) return;
 
         try {
-            // Combine all chunks into one blob
+            // Combine all chunks into one blob (includes headers from the start)
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-            audioChunksRef.current = []; // Clear for next interval
+            // Do NOT clear the array, so we keep the webm headers!
+            // audioChunksRef.current = []; 
 
             // Convert to base64
             const base64Audio = await blobToBase64(audioBlob);

@@ -3,23 +3,23 @@
 # --- Local Development ---
 dev:
 	@echo "Starting local development environment..."
-	docker-compose -f infrastructure/docker-compose.yml up --build
+	docker compose -f infrastructure/docker-compose.yml up --build
 
 # --- Production Deployment ---
 prod:
 	@echo "Starting production environment..."
-	docker-compose -f infrastructure/docker-compose.prod.yml up -d --build
+	docker compose -f infrastructure/docker-compose.prod.yml up -d --build
 
 # --- Database ---
 migrate:
 	@echo "Running Alembic migrations..."
-	docker-compose -f infrastructure/docker-compose.yml exec backend alembic upgrade head
+	docker compose -f infrastructure/docker-compose.yml exec backend alembic upgrade head
 
 # --- Quality Assurance ---
 test:
 	@echo "Running tests..."
 	cd frontend && npm run test:run
-	docker-compose -f infrastructure/docker-compose.yml exec backend pytest
+	docker compose -f infrastructure/docker-compose.yml exec backend pytest
 
 lint:
 	@echo "Running linters..."

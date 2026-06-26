@@ -104,6 +104,11 @@ app.include_router(config.router, prefix="/v1/config", tags=["Configuration"])
 app.include_router(privacy.router, prefix="/v1/privacy", tags=["Privacy"])
 app.include_router(system.router, prefix="/v1/system", tags=["System"])
 
+# WebSocket routers
+from app.api.v1 import speech_ws, behavioral_ws
+app.include_router(speech_ws.router, prefix="/v1/speech", tags=["Speech Analysis WS"])
+app.include_router(behavioral_ws.router, prefix="/v1/behavioral", tags=["Behavioral Analysis WS"])
+
 from app.api.v1 import metrics
 app.include_router(metrics.router, prefix="/metrics", tags=["Monitoring"])
 

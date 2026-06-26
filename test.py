@@ -1,0 +1,1 @@
+﻿import urllib.request, json; req = urllib.request.Request('http://localhost:8000/v1/auth/login', data=json.dumps({'email':'test@example.com','password':'StrongPassword123!'}).encode('utf-8'), headers={'Content-Type': 'application/json'}); print(urllib.request.urlopen(req).read())

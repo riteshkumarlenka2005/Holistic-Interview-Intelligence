@@ -106,6 +106,7 @@ class UserResponse(BaseModel):
     last_name: Optional[str]
     avatar_url: Optional[str]
     is_verified: bool
+    role: str
     oauth_provider: str
     created_at: datetime
     

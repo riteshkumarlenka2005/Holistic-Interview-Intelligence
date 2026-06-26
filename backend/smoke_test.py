@@ -22,7 +22,7 @@ async def run_smoke_test():
     console.print("\n[yellow]1. Checking Health Endpoint...[/yellow]")
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.get(f"{WS_URL}/health")
+            resp = await client.get(f"{API_URL}/health")
             resp.raise_for_status()
             console.print("[green]✓ Health check passed[/green]")
         except Exception as e:
@@ -47,7 +47,7 @@ async def run_smoke_test():
             # Login
             login_resp = await client.post(
                 f"{API_URL}/auth/login",
-                json={"email": email, "password": password}
+                data={"username": email, "password": password}
             )
             login_resp.raise_for_status()
             token = login_resp.json()["access_token"]

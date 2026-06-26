@@ -4,12 +4,14 @@ WORKDIR /app
 # Install dependencies
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci --production=false
+RUN npm install
 
 # Build the application
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Use the Node adapter config instead of Vercel for Docker builds
+RUN cp astro.config.docker.mjs astro.config.mjs
 RUN npm run build
 
 # Production image
