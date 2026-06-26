@@ -24,10 +24,10 @@ class ConfidenceEngine:
           Facial Engagement (15%) - Replacing smile
         """
         score = (
-            (speech_fluency_score * 0.35) +
+            (speech_fluency_score * 0.40) +
             (eye_contact_percent * 0.35) +
             (head_stability_score * 0.15) +
-            (facial_engagement_score * 0.15)
+            (facial_engagement_score * 0.10)
         )
         
         score = max(0.0, min(100.0, score))
