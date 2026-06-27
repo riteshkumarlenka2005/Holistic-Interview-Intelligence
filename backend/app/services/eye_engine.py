@@ -1,116 +1,194 @@
 """
 Eye Tracking Engine.
-Uses MediaPipe Face Mesh with refined landmarks to estimate gaze direction.
-Tracks eye contact percentage and continuous look-away distraction events.
+Uses provided MediaPipe FaceMesh landmarks to estimate gaze direction and detect blinks.
+Stateless sub-engine.
 """
 from typing import Dict, Any, List
 import math
 
 class EyeEngine:
     def __init__(self):
-        self._mp_face_mesh = None
-        self._face_mesh = None
+        # MediaPipe Landmark Indices
+        # Left eye bounding box
+        self.LEFT_EYE_LEFT = 33
+        self.LEFT_EYE_RIGHT = 133
+        self.LEFT_EYE_TOP = 159
+        self.LEFT_EYE_BOTTOM = 145
+        self.LEFT_IRIS = 468  # Requires refine_landmarks=True
 
-    def _get_model(self):
-        if self._mp_face_mesh is None:
-            import mediapipe as mp
-            self._mp_face_mesh = mp.solutions.face_mesh
-            self._face_mesh = self._mp_face_mesh.FaceMesh(
-                max_num_faces=1,
-                refine_landmarks=True,  # Crucial for Iris tracking
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5
-            )
-        return self._face_mesh
+        # Right eye bounding box
+        self.RIGHT_EYE_LEFT = 362
+        self.RIGHT_EYE_RIGHT = 263
+        self.RIGHT_EYE_TOP = 386
+        self.RIGHT_EYE_BOTTOM = 374
+        self.RIGHT_IRIS = 473 # Requires refine_landmarks=True
 
-    def _calculate_gaze_ratio(self, landmarks, frame_w, frame_h) -> float:
+    def _calculate_distance(self, p1, p2, iw, ih) -> float:
+        x1, y1 = p1.x * iw, p1.y * ih
+        x2, y2 = p2.x * iw, p2.y * ih
+        return math.hypot(x2 - x1, y2 - y1)
+
+    def _calculate_gaze_ratios(self, landmarks, iw, ih) -> tuple[float, float]:
         """
-        Estimates gaze direction by comparing the iris center relative to the eye corners.
-        Returns a ratio. ~0.5 means looking straight. <0.4 or >0.6 means looking away.
+        Estimates horizontal and vertical gaze direction by comparing the iris center
+        relative to the eye corners (horizontal) and eyelids (vertical).
+        Returns (gaze_ratio_x, gaze_ratio_y).
+        ~0.5 means looking straight.
         """
-        # Left eye landmarks (MediaPipe)
-        left_eye_left = 33
-        left_eye_right = 133
-        left_iris_center = 468  # 468 is the center of the left iris when refine_landmarks=True
-
-        p_left = landmarks.landmark[left_eye_left]
-        p_right = landmarks.landmark[left_eye_right]
-        p_iris = landmarks.landmark[left_iris_center]
+        # We use the left eye for gaze estimation as a proxy
+        p_left = landmarks.landmark[self.LEFT_EYE_LEFT]
+        p_right = landmarks.landmark[self.LEFT_EYE_RIGHT]
+        p_top = landmarks.landmark[self.LEFT_EYE_TOP]
+        p_bottom = landmarks.landmark[self.LEFT_EYE_BOTTOM]
+        p_iris = landmarks.landmark[self.LEFT_IRIS]
 
         # Convert to pixel coordinates
-        x_left, _ = int(p_left.x * frame_w), int(p_left.y * frame_h)
-        x_right, _ = int(p_right.x * frame_w), int(p_right.y * frame_h)
-        x_iris, _ = int(p_iris.x * frame_w), int(p_iris.y * frame_h)
+        x_left, y_left = int(p_left.x * iw), int(p_left.y * ih)
+        x_right, y_right = int(p_right.x * iw), int(p_right.y * ih)
+        x_top, y_top = int(p_top.x * iw), int(p_top.y * ih)
+        x_bottom, y_bottom = int(p_bottom.x * iw), int(p_bottom.y * ih)
+        x_iris, y_iris = int(p_iris.x * iw), int(p_iris.y * ih)
 
         eye_width = x_right - x_left
-        if eye_width == 0:
-            return 0.5
+        eye_height = y_bottom - y_top
 
-        iris_offset = x_iris - x_left
-        return iris_offset / eye_width
+        gaze_ratio_x = 0.5
+        gaze_ratio_y = 0.5
 
-    def analyze_frame(self, image_np: "np.ndarray") -> Dict[str, Any]:
+        if eye_width != 0:
+            iris_offset_x = x_iris - x_left
+            gaze_ratio_x = iris_offset_x / eye_width
+
+        if eye_height != 0:
+            iris_offset_y = y_iris - y_top
+            gaze_ratio_y = iris_offset_y / eye_height
+
+        return gaze_ratio_x, gaze_ratio_y
+
+    def _calculate_ear(self, landmarks, iw, ih) -> float:
         """
-        Returns boolean is_looking_at_camera based on gaze ratio.
+        Calculates Eye Aspect Ratio (EAR) for blink detection.
         """
-        import cv2
-        model = self._get_model()
-        ih, iw, _ = image_np.shape
-        
-        image_np.flags.writeable = False
-        image_rgb = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        results = model.process(image_rgb)
-        image_np.flags.writeable = True
+        # Left eye
+        p_left_l = landmarks.landmark[self.LEFT_EYE_LEFT]
+        p_right_l = landmarks.landmark[self.LEFT_EYE_RIGHT]
+        p_top_l = landmarks.landmark[self.LEFT_EYE_TOP]
+        p_bottom_l = landmarks.landmark[self.LEFT_EYE_BOTTOM]
 
-        if not results.multi_face_landmarks:
-            return {"is_looking_at_camera": False}
+        # Right eye
+        p_left_r = landmarks.landmark[self.RIGHT_EYE_LEFT]
+        p_right_r = landmarks.landmark[self.RIGHT_EYE_RIGHT]
+        p_top_r = landmarks.landmark[self.RIGHT_EYE_TOP]
+        p_bottom_r = landmarks.landmark[self.RIGHT_EYE_BOTTOM]
 
-        landmarks = results.multi_face_landmarks[0]
+        # Distances
+        left_vert = self._calculate_distance(p_top_l, p_bottom_l, iw, ih)
+        left_horz = self._calculate_distance(p_left_l, p_right_l, iw, ih)
         
+        right_vert = self._calculate_distance(p_top_r, p_bottom_r, iw, ih)
+        right_horz = self._calculate_distance(p_left_r, p_right_r, iw, ih)
+
+        ear_left = left_vert / left_horz if left_horz != 0 else 0.0
+        ear_right = right_vert / right_horz if right_horz != 0 else 0.0
+
+        return (ear_left + ear_right) / 2.0
+
+    def analyze_landmarks(self, landmarks, iw: int, ih: int) -> Dict[str, Any]:
+        """
+        Calculates gaze ratios and Eye Aspect Ratio (EAR).
+        """
         # We need 468 landmarks for Iris tracking. Fallback if not available.
         if len(landmarks.landmark) < 469:
-            return {"is_looking_at_camera": False}
+            return {
+                "is_looking_at_camera": False,
+                "gaze_ratio_x": 0.5,
+                "gaze_ratio_y": 0.5,
+                "is_blinking": False,
+                "ear": 0.0
+            }
 
-        gaze_ratio = self._calculate_gaze_ratio(landmarks, iw, ih)
+        gaze_ratio_x, gaze_ratio_y = self._calculate_gaze_ratios(landmarks, iw, ih)
+        ear = self._calculate_ear(landmarks, iw, ih)
         
+        # Blink detection threshold
+        # Typical EAR for open eye is ~0.25 to 0.35. Blinking drops EAR below 0.20
+        is_blinking = ear < 0.20
+
         # Tolerance: 0.40 to 0.60 is generally looking towards the camera center
-        is_looking = 0.40 <= gaze_ratio <= 0.60
+        # We check both X and Y now
+        is_looking_x = 0.35 <= gaze_ratio_x <= 0.65
+        is_looking_y = 0.35 <= gaze_ratio_y <= 0.65
+        
+        # If they are blinking, they are technically not looking at the camera,
+        # but a quick blink shouldn't penalize eye contact immediately.
+        # We handle this in aggregation.
+        is_looking = is_looking_x and is_looking_y
 
         return {
             "is_looking_at_camera": is_looking,
-            "gaze_ratio": gaze_ratio
+            "gaze_ratio_x": round(gaze_ratio_x, 3),
+            "gaze_ratio_y": round(gaze_ratio_y, 3),
+            "is_blinking": is_blinking,
+            "ear": round(ear, 3)
         }
 
     def aggregate_session_metrics(self, frames_data: List[Dict[str, Any]], fps: int = 5) -> Dict[str, Any]:
         """
-        Aggregates frame data to calculate eye contact % and distraction events.
+        Aggregates frame data to calculate eye contact %, distraction events, and blink rate.
         A distraction event is looking away continuously for > 8 seconds.
         """
         if not frames_data:
-            return {"eye_contact_percent": 0.0, "distraction_events": 0}
+            return {
+                "eye_contact_percent": 0.0,
+                "distraction_events": 0,
+                "blink_count": 0,
+                "blinks_per_minute": 0.0
+            }
 
         total_frames = len(frames_data)
         looking_frames = 0
+        blink_frames = 0
         
         current_away_streak = 0
         distraction_events = 0
         distraction_frame_threshold = 8 * fps  # 8 seconds
 
+        # Blink debouncing (don't double count slow blinks)
+        is_currently_blinking = False
+        blink_count = 0
+
         for frame in frames_data:
-            if frame.get("is_looking_at_camera"):
+            # Handle blinking
+            if frame.get("is_blinking", False):
+                blink_frames += 1
+                if not is_currently_blinking:
+                    blink_count += 1
+                    is_currently_blinking = True
+                
+                # Treat blink as looking for eye contact purposes so blinks don't hurt score
                 looking_frames += 1
                 current_away_streak = 0
             else:
-                current_away_streak += 1
-                if current_away_streak == distraction_frame_threshold:
-                    distraction_events += 1
-                    # reset to avoid double counting the same long streak multiple times 
-                    # or keep it running depending on definition. Let's reset so 16s = 2 events.
+                is_currently_blinking = False
+                
+                # Handle gaze
+                if frame.get("is_looking_at_camera", False):
+                    looking_frames += 1
                     current_away_streak = 0
+                else:
+                    current_away_streak += 1
+                    if current_away_streak == distraction_frame_threshold:
+                        distraction_events += 1
+                        current_away_streak = 0
 
         eye_contact_percent = (looking_frames / total_frames) * 100
+        
+        duration_minutes = (total_frames / fps) / 60.0
+        blinks_per_minute = blink_count / duration_minutes if duration_minutes > 0 else 0.0
 
         return {
             "eye_contact_percent": round(eye_contact_percent, 1),
-            "distraction_events": distraction_events
+            "distraction_events": distraction_events,
+            "blink_count": blink_count,
+            "blinks_per_minute": round(blinks_per_minute, 1)
         }

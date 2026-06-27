@@ -1,58 +1,21 @@
 """
 Face Analysis Engine.
-Uses MediaPipe Face Mesh to analyze facial engagement and head stability.
+Uses provided MediaPipe FaceMesh landmarks to analyze facial engagement and head pose.
+Stateless sub-engine.
 """
-import math
-from typing import Dict, Any, List, Optional
-
-try:
-    import cv2
-    import numpy as np
-    import mediapipe as mp
-except ImportError:
-    pass  # Allow tests to mock this if not installed
-
+from typing import Dict, Any, List
+import numpy as np
+import cv2
 
 class FaceEngine:
     def __init__(self):
-        self._mp_face_mesh = None
-        self._face_mesh = None
+        pass
 
-    def _get_model(self):
-        if self._mp_face_mesh is None:
-            import mediapipe as mp
-            self._mp_face_mesh = mp.solutions.face_mesh
-            # max_num_faces=2 so we can detect "multiple_faces" constraint violation
-            self._face_mesh = self._mp_face_mesh.FaceMesh(
-                max_num_faces=2,
-                refine_landmarks=True,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5
-            )
-        return self._face_mesh
-
-    def analyze_frame(self, image_np: "np.ndarray") -> Dict[str, Any]:
+    def analyze_landmarks(self, landmarks, iw: int, ih: int, face_count: int) -> Dict[str, Any]:
         """
-        Analyzes a single video frame.
-        Expects a BGR numpy array from cv2.
-        
-        Returns:
-            Dict containing:
-            - face_count (int)
-            - pitch, yaw, roll (float)
-            - engagement_score (float 0-100)
+        Analyzes head pose from provided face landmarks.
         """
-        model = self._get_model()
-        import cv2
-        import numpy as np
-        
-        # To improve performance, optionally mark the image as not writeable
-        image_np.flags.writeable = False
-        image_rgb = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        results = model.process(image_rgb)
-        image_np.flags.writeable = True
-
-        if not results.multi_face_landmarks:
+        if face_count == 0:
             return {
                 "face_count": 0,
                 "pitch": 0.0,
@@ -60,24 +23,17 @@ class FaceEngine:
                 "roll": 0.0,
                 "engagement_score": 0.0
             }
-            
-        face_count = len(results.multi_face_landmarks)
-        
-        # We only analyze the first (primary) face for pose
-        face_landmarks = results.multi_face_landmarks[0]
-        
-        # Simple Head Pose Estimation using 2D/3D projection
-        ih, iw, _ = image_np.shape
-        face_3d = []
-        face_2d = []
 
         # Canonical standard face model points
         # 1: Nose tip, 152: Chin, 33: Left eye left corner, 263: Right eye right corner,
         # 61: Left mouth corner, 291: Right mouth corner
         key_landmarks = [1, 152, 33, 263, 61, 291]
 
+        face_3d = []
+        face_2d = []
+
         for idx in key_landmarks:
-            lm = face_landmarks.landmark[idx]
+            lm = landmarks.landmark[idx]
             x, y = int(lm.x * iw), int(lm.y * ih)
             face_2d.append([x, y])
             face_3d.append([x, y, lm.z])
@@ -103,18 +59,11 @@ class FaceEngine:
         if success:
             rmat, _ = cv2.Rodrigues(rot_vec)
             angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
-            # OpenCV returns degrees. Typically:
-            # angles[0] = pitch (up/down)
-            # angles[1] = yaw (left/right)
-            # angles[2] = roll (tilt)
             pitch = angles[0] * 360
             yaw = angles[1] * 360
             roll = angles[2] * 360
             
         # Calculate Facial Engagement (0-100)
-        # Good engagement = face looking roughly forward
-        # Yaw penalty if looking > 20 degrees away
-        # Pitch penalty if looking > 20 degrees down or up
         yaw_penalty = max(0, abs(yaw) - 15) * 2
         pitch_penalty = max(0, abs(pitch) - 15) * 2
         
@@ -123,9 +72,9 @@ class FaceEngine:
 
         return {
             "face_count": face_count,
-            "pitch": pitch,
-            "yaw": yaw,
-            "roll": roll,
+            "pitch": round(pitch, 2),
+            "yaw": round(yaw, 2),
+            "roll": round(roll, 2),
             "engagement_score": round(engagement_score, 1)
         }
 
@@ -148,7 +97,6 @@ class FaceEngine:
         avg_engagement = sum(f.get("engagement_score", 0) for f in valid_frames) / len(valid_frames)
         
         # Head Stability: High variance in yaw/pitch = low stability (jitter)
-        import numpy as np
         yaws = [f.get("yaw", 0) for f in valid_frames]
         pitches = [f.get("pitch", 0) for f in valid_frames]
         

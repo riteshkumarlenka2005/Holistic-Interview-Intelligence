@@ -20,8 +20,7 @@ def process_video_chunk(self, session_id: str, timestamp_ms: int, frame_base64: 
     try:
         import cv2
         import numpy as np
-        from app.services.face_engine import FaceEngine
-        from app.services.eye_engine import EyeEngine
+        from app.services.vision_pipeline import VisionPipeline
         from app.services.coaching_engine import CoachingEngine
 
         # Decode base64 to numpy array
@@ -32,19 +31,10 @@ def process_video_chunk(self, session_id: str, timestamp_ms: int, frame_base64: 
         if img is None:
             return {"status": "error", "message": "Failed to decode frame"}
 
-        # Run engines
-        face_engine = FaceEngine()
-        eye_engine = EyeEngine()
-
-        face_metrics = face_engine.analyze_frame(img)
-        eye_metrics = eye_engine.analyze_frame(img)
-
-        # Combine metrics
-        frame_metrics = {
-            "timestamp_ms": timestamp_ms,
-            **face_metrics,
-            **eye_metrics
-        }
+        # Run Vision Pipeline (Single MediaPipe Inference)
+        vision_pipeline = VisionPipeline()
+        frame_metrics = vision_pipeline.process_frame(img)
+        frame_metrics["timestamp_ms"] = timestamp_ms
 
         # Store in Redis
         redis_client = get_redis()
@@ -61,14 +51,16 @@ def process_video_chunk(self, session_id: str, timestamp_ms: int, frame_base64: 
 
         if recent_frames:
             # Aggregate metrics over recent window
-            rolling_face = face_engine.aggregate_session_metrics(recent_frames)
-            rolling_eye = eye_engine.aggregate_session_metrics(recent_frames, fps=5)
+            rolling_vision = vision_pipeline.aggregate_session_metrics(recent_frames)
 
             rolling_metrics = {
-                "face_count": face_metrics["face_count"], # use instantaneous for multiple faces
-                "eye_contact_percent": rolling_eye["eye_contact_percent"],
-                "head_stability_score": rolling_face["head_stability_score"],
-                "avg_engagement": rolling_face["avg_engagement"]
+                "face_count": frame_metrics["face_count"], # use instantaneous for multiple faces
+                "eye_contact_percent": rolling_vision["eye_contact_percent"],
+                "head_stability_score": rolling_vision["head_stability_score"],
+                "avg_engagement": rolling_vision["avg_engagement"],
+                "blink_count": rolling_vision["blink_count"],
+                "blinks_per_minute": rolling_vision["blinks_per_minute"],
+                "mouth_open_percent": rolling_vision["mouth_open_percent"],
             }
 
             # Add latest speech metrics if available for full coaching context
@@ -106,8 +98,7 @@ def finalize_vision_analysis(self, session_id: str):
     Aggregates all vision frames into final metrics for the Confidence Engine.
     """
     try:
-        from app.services.face_engine import FaceEngine
-        from app.services.eye_engine import EyeEngine
+        from app.services.vision_pipeline import VisionPipeline
 
         redis_client = get_redis()
         frames_key = f"vision:{session_id}:frames"
@@ -118,11 +109,8 @@ def finalize_vision_analysis(self, session_id: str):
 
         frames = [json.loads(f) for f in raw_frames]
 
-        face_engine = FaceEngine()
-        eye_engine = EyeEngine()
-
-        face_agg = face_engine.aggregate_session_metrics(frames)
-        eye_agg = eye_engine.aggregate_session_metrics(frames, fps=5)
+        vision_pipeline = VisionPipeline()
+        vision_agg = vision_pipeline.aggregate_session_metrics(frames)
 
         # Clear the frames for the next answer to start fresh (if called per-answer)
         redis_client.delete(frames_key)
@@ -130,8 +118,7 @@ def finalize_vision_analysis(self, session_id: str):
         return {
             "status": "completed",
             "session_id": session_id,
-            "face_metrics": face_agg,
-            "eye_metrics": eye_agg,
+            "vision_metrics": vision_agg,
             "frame_count": len(frames)
         }
 
