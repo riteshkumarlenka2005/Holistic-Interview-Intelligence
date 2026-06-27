@@ -1,116 +1,163 @@
 """
-Real-Time Coaching Engine.
-Processes real-time streams of metrics and emits coaching hints.
-Uses cooldowns to avoid spamming the user.
+Coaching Engine — Real-Time Interview Guidance.
+
+Runs continuously during the interview session.
+Checks live metrics against thresholds and emits coaching hints via WebSocket.
+
+Hint Severity:
+    CRITICAL → Must act now (e.g., multiple faces — integrity violation)
+    WARNING  → Should improve (e.g., poor eye contact)
+    INFO     → Nice to fix (e.g., speaking pace)
+
+Cooldown: 15 seconds per hint type to prevent spam.
+
+Hints produced:
+    1. Multiple faces detected   (CRITICAL)
+    2. Low eye contact           (WARNING)
+    3. Too many filler words     (WARNING)
+    4. Speaking too fast         (INFO)
+    5. Speaking too slow         (INFO)
+    6. Head movement / jitter    (INFO)
+    7. Low volume / speak louder (INFO)
 """
-from typing import Dict, Any, List
 import time
 import enum
+from typing import Dict, Any, List
 
 
 class CoachingSeverity(str, enum.Enum):
-    INFO = "info"
-    WARNING = "warning"
+    INFO     = "info"
+    WARNING  = "warning"
     CRITICAL = "critical"
 
 
 class CoachingHint:
     def __init__(self, message: str, severity: CoachingSeverity, metric: str):
-        self.message = message
+        self.message  = message
         self.severity = severity
-        self.metric = metric
+        self.metric   = metric
         self.timestamp = time.time()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "message": self.message,
-            "severity": self.severity.value,
-            "metric": self.metric,
-            "timestamp": self.timestamp
+            "message":   self.message,
+            "severity":  self.severity.value,
+            "metric":    self.metric,
+            "timestamp": self.timestamp,
         }
 
 
 class CoachingEngine:
-    # 15 seconds cooldown per hint type
-    COOLDOWN_SECONDS = 15
+    COOLDOWN_SECONDS = 15  # Per-metric cooldown to avoid spamming
+
+    # Thresholds
+    LOW_EYE_CONTACT_THRESHOLD   = 40   # % below this triggers warning
+    HIGH_FILLER_RATE_THRESHOLD  = 10   # % above this triggers warning
+    TOO_FAST_WPM                = 180  # words per minute
+    TOO_SLOW_WPM                = 80
+    LOW_HEAD_STABILITY_THRESHOLD = 40  # score below this triggers info
+    LOW_VOLUME_THRESHOLD         = 50  # rms energy below this triggers hint
 
     def __init__(self):
-        # Maps session_id -> {metric_name -> last_triggered_timestamp}
+        # session_id → { metric → last_triggered_timestamp }
         self._last_triggered: Dict[str, Dict[str, float]] = {}
 
     def _can_trigger(self, session_id: str, metric: str) -> bool:
-        """Checks if enough time has passed since the last hint for this metric."""
-        if session_id not in self._last_triggered:
-            self._last_triggered[session_id] = {}
-            
-        last_time = self._last_triggered[session_id].get(metric, 0)
-        current_time = time.time()
-        
-        if current_time - last_time >= self.COOLDOWN_SECONDS:
-            self._last_triggered[session_id][metric] = current_time
+        """Returns True if cooldown has elapsed for this metric in this session."""
+        session = self._last_triggered.setdefault(session_id, {})
+        last = session.get(metric, 0)
+        if time.time() - last >= self.COOLDOWN_SECONDS:
+            session[metric] = time.time()
             return True
         return False
 
     def check_metrics(self, session_id: str, metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Takes real-time metrics (e.g. from a chunk) and determines if hints should fire.
-        Returns a list of hint dictionaries to be emitted via WebSocket.
+        Evaluates real-time metrics and produces coaching hints.
+
+        Expected metrics keys (all optional — engine handles missing gracefully):
+            face_count          (int)
+            eye_contact_percent (float 0-100)
+            filler_rate_percent (float 0-100)
+            wpm                 (float)
+            head_stability_score(float 0-100)
+            volume_rms          (float 0-100, from audio processing)
+
+        Returns:
+            List of hint dicts ready to emit over WebSocket.
         """
         hints = []
-        
-        # 1. Multiple Faces (CRITICAL)
+
+        # 1. Multiple faces — CRITICAL (integrity concern)
         if metrics.get("face_count", 1) > 1:
             if self._can_trigger(session_id, "multiple_faces"):
                 hints.append(CoachingHint(
                     message="Multiple faces detected. Please ensure you are alone.",
                     severity=CoachingSeverity.CRITICAL,
-                    metric="multiple_faces"
+                    metric="multiple_faces",
                 ).to_dict())
-                
-        # 2. Eye Contact (WARNING)
-        # Assuming this is calculated over a rolling window of recent frames
-        if "eye_contact_percent" in metrics and metrics["eye_contact_percent"] < 40:
+
+        # 2. Low eye contact — WARNING
+        eye = metrics.get("eye_contact_percent")
+        if eye is not None and eye < self.LOW_EYE_CONTACT_THRESHOLD:
             if self._can_trigger(session_id, "eye_contact"):
                 hints.append(CoachingHint(
                     message="Maintain eye contact with the camera.",
                     severity=CoachingSeverity.WARNING,
-                    metric="eye_contact"
+                    metric="eye_contact",
                 ).to_dict())
-                
-        # 3. Filler Words (WARNING)
-        if "filler_rate_percent" in metrics and metrics["filler_rate_percent"] > 10:
+
+        # 3. Filler words — WARNING
+        filler_rate = metrics.get("filler_rate_percent")
+        if filler_rate is not None and filler_rate > self.HIGH_FILLER_RATE_THRESHOLD:
             if self._can_trigger(session_id, "filler_rate"):
                 hints.append(CoachingHint(
-                    message="Try to reduce filler words (um, uh, like).",
+                    message="Try to reduce filler words like 'um', 'uh', 'like', 'basically'.",
                     severity=CoachingSeverity.WARNING,
-                    metric="filler_rate"
+                    metric="filler_rate",
                 ).to_dict())
-                
-        # 4. Pace (INFO)
-        if "wpm" in metrics:
-            wpm = metrics["wpm"]
-            if wpm > 180:
-                if self._can_trigger(session_id, "pace_fast"):
-                    hints.append(CoachingHint(
-                        message="You're speaking a bit fast. Try slowing down slightly.",
-                        severity=CoachingSeverity.INFO,
-                        metric="pace_fast"
-                    ).to_dict())
-            elif wpm > 0 and wpm < 80:
-                if self._can_trigger(session_id, "pace_slow"):
-                    hints.append(CoachingHint(
-                        message="Your pace is a bit slow. Try to speak a bit faster.",
-                        severity=CoachingSeverity.INFO,
-                        metric="pace_slow"
-                    ).to_dict())
 
-        # 5. Head Jitter / Stability (INFO)
-        if "head_stability_score" in metrics and metrics["head_stability_score"] < 40:
+        # 4. Speaking too fast — INFO
+        wpm = metrics.get("wpm")
+        if wpm is not None and wpm > self.TOO_FAST_WPM:
+            if self._can_trigger(session_id, "pace_fast"):
+                hints.append(CoachingHint(
+                    message="You're speaking a bit fast. Slow down slightly for clarity.",
+                    severity=CoachingSeverity.INFO,
+                    metric="pace_fast",
+                ).to_dict())
+
+        # 5. Speaking too slow — INFO
+        elif wpm is not None and 0 < wpm < self.TOO_SLOW_WPM:
+            if self._can_trigger(session_id, "pace_slow"):
+                hints.append(CoachingHint(
+                    message="Your pace is a bit slow. Try to speak a bit faster.",
+                    severity=CoachingSeverity.INFO,
+                    metric="pace_slow",
+                ).to_dict())
+
+        # 6. Head jitter / instability — INFO
+        stability = metrics.get("head_stability_score")
+        if stability is not None and stability < self.LOW_HEAD_STABILITY_THRESHOLD:
             if self._can_trigger(session_id, "head_stability"):
                 hints.append(CoachingHint(
-                    message="Try to keep your head steady.",
+                    message="Try to keep your head steady while speaking.",
                     severity=CoachingSeverity.INFO,
-                    metric="head_stability"
+                    metric="head_stability",
+                ).to_dict())
+
+        # 7. Low volume / speak louder — INFO
+        volume = metrics.get("volume_rms")
+        if volume is not None and volume < self.LOW_VOLUME_THRESHOLD:
+            if self._can_trigger(session_id, "volume_low"):
+                hints.append(CoachingHint(
+                    message="Speak louder — your voice is too quiet.",
+                    severity=CoachingSeverity.INFO,
+                    metric="volume_low",
                 ).to_dict())
 
         return hints
+
+    def clear_session(self, session_id: str) -> None:
+        """Cleans up cooldown state when a session ends."""
+        self._last_triggered.pop(session_id, None)

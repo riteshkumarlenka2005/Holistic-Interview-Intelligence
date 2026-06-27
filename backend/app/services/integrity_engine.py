@@ -1,49 +1,94 @@
-from typing import List
+"""
+Integrity Engine — Fairness and Cheating Detection.
+
+Tracks suspicious behavior throughout the interview session.
+
+Monitored events:
+    tab_switch          → Candidate switched browser tab          (-2 pts)
+    window_blur         → Browser window lost focus               (-3 pts)
+    multiple_faces      → More than one face detected in frame    (-15 pts)
+    distraction_event   → Looking away for > 8 seconds           (-10 pts)
+
+Integrity Score: starts at 100, deductions applied per event.
+Minimum score: 0.
+
+The IntegrityEngine is purely arithmetic — no AI models used.
+"""
+from typing import List, Dict, Any
 from app.models.integrity import IntegrityEvent
 
+
+# Deduction map — event_type → points deducted per occurrence
+DEDUCTION_MAP: Dict[str, int] = {
+    "tab_switch":        2,
+    "window_blur":       3,
+    "multiple_faces":   15,
+    "distraction_event": 10,
+}
+
+
 class IntegrityEngine:
-    def __init__(self):
-        # Weights for different integrity deductions
-        self.deductions = {
-            "tab_switch": 2,
-            "window_blur": 3,
-            "distraction_event": 10,
-            "multiple_faces": 15
-        }
 
     def calculate_score(self, events: List[IntegrityEvent]) -> int:
         """
-        Calculates the integrity score starting from 100 and deducting points
-        based on the frequency and severity of events.
+        Computes the Integrity Score for a session.
+
+        Starts at 100, applies deductions per event.
+        Returns final score (minimum 0).
         """
         score = 100
-        
         for event in events:
-            deduction = self.deductions.get(event.event_type, 0)
+            deduction = DEDUCTION_MAP.get(event.event_type, 0)
             score -= deduction
-            
-        # Ensure score doesn't drop below 0
         return max(0, score)
-    
-    def generate_summary(self, events: List[IntegrityEvent]) -> dict:
+
+    def generate_summary(self, events: List[IntegrityEvent]) -> Dict[str, Any]:
         """
-        Generates a summary of the events for the report.
+        Generates a human-readable summary of all integrity events.
+
+        Returns:
+            integrity_score (int)
+            tab_switches    (int)
+            window_blurs    (int)
+            multiple_faces  (int)
+            distractions    (int)
+            total_events    (int)
+            risk_level      ("Low" | "Medium" | "High")
         """
         summary = {
-            "tab_switches": 0,
-            "window_blurs": 0,
-            "distractions": 0,
-            "multiple_faces": 0,
+            "tab_switches":    0,
+            "window_blurs":    0,
+            "multiple_faces":  0,
+            "distractions":    0,
         }
-        
+
         for event in events:
-            if event.event_type == "tab_switch":
+            t = event.event_type
+            if t == "tab_switch":
                 summary["tab_switches"] += 1
-            elif event.event_type == "window_blur":
+            elif t == "window_blur":
                 summary["window_blurs"] += 1
-            elif event.event_type == "distraction_event":
-                summary["distractions"] += 1
-            elif event.event_type == "multiple_faces":
+            elif t == "multiple_faces":
                 summary["multiple_faces"] += 1
-                
-        return summary
+            elif t == "distraction_event":
+                summary["distractions"] += 1
+
+        score = self.calculate_score(events)
+        total = len(events)
+
+        if score >= 80:
+            risk_level = "Low"
+        elif score >= 50:
+            risk_level = "Medium"
+        else:
+            risk_level = "High"
+
+        return {
+            "integrity_score": score,
+            "tab_switches":    summary["tab_switches"],
+            "window_blurs":    summary["window_blurs"],
+            "multiple_faces":  summary["multiple_faces"],
+            "distractions":    summary["distractions"],
+            "total_events":    total,
+            "risk_level":      risk_level,
+        }

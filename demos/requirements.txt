@@ -1,0 +1,18 @@
+# Demo 1: MediaPipe
+mediapipe
+opencv-python
+numpy
+
+# Demo 2: DeepFace
+deepface
+tf-keras
+
+# Demo 3: Faster-Whisper
+faster-whisper
+sounddevice
+
+# Demo 4: Edge-TTS
+edge-tts
+
+# Demo 5: Gemini
+google-genai

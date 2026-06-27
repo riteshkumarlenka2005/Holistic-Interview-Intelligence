@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import auth, users, interview, analysis, reports, resources, recruiter, config, privacy, system
 from app.core.config import get_settings
 from app.core.database import init_db, check_db_health, dispose_engine
+from app.core.observability import logger, set_request_id
+from app.core.feature_flags import features
 
 settings = get_settings()
 
@@ -16,10 +18,13 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan events for startup and shutdown"""
-    # Startup: Initialize database tables
+    # Startup
+    logger.info("startup", version="1.0.0-rc1", environment=settings.environment if hasattr(settings, 'environment') else 'development')
     await init_db()
+    logger.info("database_ready")
     yield
-    # Shutdown: Dispose engine connections
+    # Shutdown
+    logger.info("shutdown")
     await dispose_engine()
 
 
@@ -43,6 +48,20 @@ app.add_middleware(
 
 from app.core.middleware import setup_middlewares
 from app.core.redis_client import get_redis_client
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+import uuid
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Injects X-Request-ID header and sets it in the async context for structured logging."""
+    async def dispatch(self, request: StarletteRequest, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())[:8]
+        set_request_id(request_id)
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+app.add_middleware(RequestIDMiddleware)
 redis_client = get_redis_client()
 setup_middlewares(app, redis_client=redis_client)
 
