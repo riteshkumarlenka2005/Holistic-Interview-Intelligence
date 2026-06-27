@@ -21,6 +21,10 @@ def main():
     if not cap.isOpened():
         print("ERROR: Cannot open webcam")
         return
+        
+    # Increase webcam resolution (720p)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     print("=" * 50)
     print("  DeepFace Emotion Detection Demo")
@@ -41,6 +45,19 @@ def main():
     last_result = None
     last_analysis_time = 0
     ANALYSIS_INTERVAL = 1.0  # seconds between analyses (DeepFace is heavy)
+    
+    # Emotion Averaging State
+    emotion_history = []
+    HISTORY_LENGTH = 5
+
+    # Basic Brightness Normalization (CLAHE)
+    def apply_clahe(img):
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
 
     while True:
         ret, frame = cap.read()
@@ -50,8 +67,11 @@ def main():
         now = time.time()
         if now - last_analysis_time >= ANALYSIS_INTERVAL:
             try:
+                # Apply CLAHE normalization before analysis
+                normalized_frame = apply_clahe(frame)
+                
                 results = DeepFace.analyze(
-                    frame,
+                    normalized_frame,
                     actions=["emotion"],
                     enforce_detection=False,
                     silent=True,
@@ -60,13 +80,26 @@ def main():
                     results = results[0]
                 last_result = results
                 last_analysis_time = now
+                
+                # Update probability history
+                emotions = last_result.get("emotion", {})
+                emotion_history.append(emotions)
+                if len(emotion_history) > HISTORY_LENGTH:
+                    emotion_history.pop(0)
+                    
             except Exception as e:
                 print(f"Analysis error: {e}")
 
         # Draw results
-        if last_result:
-            emotions = last_result.get("emotion", {})
-            dominant = last_result.get("dominant_emotion", "unknown")
+        if last_result and emotion_history:
+            # Calculate Averaged Emotions
+            avg_emotions = {
+                k: sum(h.get(k, 0) for h in emotion_history) / len(emotion_history) 
+                for k in emotion_history[-1].keys()
+            }
+            
+            # Find the new dominant emotion based on averages
+            dominant = max(avg_emotions.items(), key=lambda x: x[1])[0]
             friendly_label = LABEL_MAP.get(dominant, dominant.title())
 
             # Draw bounding box if available
@@ -78,7 +111,7 @@ def main():
             # Dominant emotion header
             cv2.putText(
                 frame,
-                f"Dominant: {friendly_label}",
+                f"Averaged Dominant: {friendly_label}",
                 (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.9,
@@ -86,10 +119,12 @@ def main():
                 2,
             )
 
-            # Emotion breakdown bars
+            # Emotion breakdown bars (Top 3 Averaged)
             y_pos = 70
             bar_max_width = 200
-            for emotion, score in sorted(emotions.items(), key=lambda x: -x[1]):
+            top_3 = sorted(avg_emotions.items(), key=lambda x: -x[1])[:3]
+            
+            for emotion, score in top_3:
                 label = LABEL_MAP.get(emotion, emotion.title())
                 bar_width = int((score / 100.0) * bar_max_width)
                 color = (0, 255, 0) if emotion == dominant else (180, 180, 180)

@@ -119,6 +119,19 @@ class Settings(BaseSettings):
     enable_eye_tracking: bool = True
     enable_playback: bool = True
     
+    # Phase 6 Feature Flags
+    enable_realtime_coaching: bool = True
+    enable_emotion: bool = True
+    enable_tts: bool = True
+    enable_partial_whisper: bool = True
+    enable_gemini: bool = True
+    
+    # Dialogue Manager & Coaching Constants
+    dialogue_queue_ttl: int = 10
+    coaching_cooldown: int = 20
+    partial_analysis_interval: int = 3
+    max_filler_words: int = 5
+    
     @property
     def is_sqlite(self) -> bool:
         """Check if using SQLite database"""

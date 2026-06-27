@@ -48,15 +48,26 @@ def calculate_ear(landmarks, top, bottom, left, right, w, h):
     return vertical / horizontal if horizontal > 0 else 0
 
 
-def calculate_gaze_ratio(landmarks, w):
-    """Iris position relative to eye width. ~0.5 = looking at camera."""
-    x_left = landmarks[LEFT_EYE_LEFT].x * w
-    x_right = landmarks[LEFT_EYE_RIGHT].x * w
-    x_iris = landmarks[LEFT_IRIS_CENTER].x * w
-    eye_width = x_right - x_left
-    if eye_width == 0:
-        return 0.5
-    return (x_iris - x_left) / eye_width
+def calculate_gaze_ratios(landmarks, w, h):
+    """Calculate horizontal and vertical gaze ratios using iris center."""
+    # Use person's left eye (indices 33 to 133)
+    outer = landmarks[LEFT_EYE_OUTER]
+    inner = landmarks[LEFT_EYE_RIGHT]
+    top = landmarks[LEFT_EYE_TOP]
+    bottom = landmarks[LEFT_EYE_BOTTOM]
+    iris = landmarks[LEFT_IRIS_CENTER]
+    
+    # 0.0 to 1.0 from screen left to screen right
+    eye_width = abs(outer.x - inner.x)
+    eye_height = abs(bottom.y - top.y)
+    
+    if eye_width == 0 or eye_height == 0:
+        return 0.5, 0.5
+        
+    horiz = (iris.x - min(outer.x, inner.x)) / eye_width
+    vert = (iris.y - min(top.y, bottom.y)) / eye_height
+    
+    return horiz, vert
 
 
 def calculate_head_pose(landmarks, w, h):
@@ -133,8 +144,25 @@ def main():
             pitch, yaw, roll = calculate_head_pose(lm, w, h)
 
             # Gaze
-            gaze = calculate_gaze_ratio(lm, w)
-            looking = 0.38 <= gaze <= 0.62
+            horiz, vert = calculate_gaze_ratios(lm, w, h)
+            if horiz < 0.40: gaze_dir = "RIGHT"
+            elif horiz > 0.60: gaze_dir = "LEFT"
+            elif vert < 0.38: gaze_dir = "UP"
+            elif vert > 0.65: gaze_dir = "DOWN"
+            else: gaze_dir = "CENTER"
+            
+            looking = (gaze_dir == "CENTER")
+
+            # Draw Iris and Gaze Vector
+            for iris_idx in [LEFT_IRIS_CENTER, RIGHT_IRIS_CENTER]:
+                iris = lm[iris_idx]
+                ix, iy = int(iris.x * w), int(iris.y * h)
+                cv2.circle(frame, (ix, iy), 2, (0, 255, 0), -1)
+                
+                # Draw vector (amplified for visibility)
+                dx = int((horiz - 0.5) * 150)
+                dy = int((vert - 0.5) * 150)
+                cv2.arrowedLine(frame, (ix, iy), (ix + dx, iy + dy), (0, 0, 255), 2, tipLength=0.3)
 
             # Blink (EAR)
             left_ear = calculate_ear(lm, LEFT_EYE_TOP, LEFT_EYE_BOTTOM, LEFT_EYE_LEFT, LEFT_EYE_RIGHT, w, h)
@@ -147,16 +175,15 @@ def main():
 
             # --- HUD overlay ---
             overlay = [
-                f"Faces Detected: {face_count}",
+                f"Eye Contact: {'YES' if looking else 'NO'}",
+                f"Gaze Direction: {gaze_dir} (H: {horiz-0.5:+.2f}, V: {vert-0.5:+.2f})",
+                f"Blinks: {blink_count}  (EAR {avg_ear:.3f})",
                 f"Pitch: {pitch:+.1f} deg",
                 f"Yaw:   {yaw:+.1f} deg",
-                f"Roll:  {roll:+.1f} deg",
-                f"Eye Contact: {'YES' if looking else 'NO'}  (ratio {gaze:.2f})",
-                f"Blinks: {blink_count}  (EAR {avg_ear:.3f})",
             ]
             y = 30
             for line in overlay:
-                color = (0, 255, 0) if "YES" in line else (0, 200, 255)
+                color = (0, 255, 0) if ("YES" in line or "CENTER" in line) else (0, 200, 255)
                 cv2.putText(frame, line, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
                 y += 28
         else:

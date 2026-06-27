@@ -9,7 +9,10 @@ import json
 import time
 from app.core.celery_app import celery_app
 from app.core.redis_client import get_redis
+from app.services.emotion_engine import EmotionEngine
 
+# Global instance for Celery worker to reuse models and in-memory state
+_emotion_engine = EmotionEngine()
 
 @celery_app.task(bind=True, max_retries=2, queue="vision")
 def process_video_chunk(self, session_id: str, timestamp_ms: int, frame_base64: str):
@@ -36,6 +39,36 @@ def process_video_chunk(self, session_id: str, timestamp_ms: int, frame_base64: 
         frame_metrics = vision_pipeline.process_frame(img)
         frame_metrics["timestamp_ms"] = timestamp_ms
 
+        # -------------------------------------------------------------
+        # Emotion Analysis (DeepFace via EmotionEngine)
+        # -------------------------------------------------------------
+        emotion_data = {"emotion": "neutral", "confidence": 0.0}
+        face_box = frame_metrics.get("face_box")
+        if face_box and img is not None:
+            # face_box is normalized (x, y, w, h)
+            h, w = img.shape[:2]
+            fx, fy, fw, fh = face_box
+            
+            # Convert normalized to pixel coordinates
+            px = int(fx * w)
+            py = int(fy * h)
+            pw = int(fw * w)
+            ph = int(fh * h)
+            
+            # Ensure bounds
+            px, py = max(0, px), max(0, py)
+            pw = min(w - px, pw)
+            ph = min(h - py, ph)
+            
+            if pw > 0 and ph > 0:
+                face_crop = img[py:py+ph, px:px+pw]
+                # Analyze emotion (throttled internally by EmotionEngine)
+                emotion_state = _emotion_engine.analyze_emotion(session_id, face_crop, timestamp_ms)
+                emotion_data["emotion"] = emotion_state.current_emotion
+                emotion_data["confidence"] = emotion_state.confidence
+
+        frame_metrics["deepface"] = emotion_data
+
         # Store in Redis
         redis_client = get_redis()
         frames_key = f"vision:{session_id}:frames"
@@ -61,6 +94,8 @@ def process_video_chunk(self, session_id: str, timestamp_ms: int, frame_base64: 
                 "blink_count": rolling_vision["blink_count"],
                 "blinks_per_minute": rolling_vision["blinks_per_minute"],
                 "mouth_open_percent": rolling_vision["mouth_open_percent"],
+                "emotion": frame_metrics.get("deepface", {}).get("emotion", "neutral"),
+                "emotion_confidence": frame_metrics.get("deepface", {}).get("confidence", 0.0),
             }
 
             # Add latest speech metrics if available for full coaching context

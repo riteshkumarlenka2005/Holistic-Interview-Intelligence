@@ -70,7 +70,7 @@ async def main():
     print("\n--- Coaching Hint ---")
     await speak(
         "Try to maintain eye contact with the camera and reduce filler words.",
-        voice="en-US-GuyNeural",
+        voice="en-US-AriaNeural",
     )
 
     await asyncio.sleep(3)

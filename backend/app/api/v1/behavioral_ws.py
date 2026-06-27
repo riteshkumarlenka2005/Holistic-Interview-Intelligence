@@ -7,6 +7,7 @@ from typing import Dict, Optional
 import json
 import asyncio
 from datetime import datetime
+from app.core.redis_client import get_redis
 
 router = APIRouter()
 
@@ -90,9 +91,26 @@ async def behavioral_analysis_websocket(websocket: WebSocket, session_id: str):
                         # Update session stats
                         active_sessions[session_id]["frames_processed"] += 1
                         
-                        # Send result back
+                        # Fetch latest DeepFace emotion from Redis to emit side-by-side
+                        redis_client = get_redis()
+                        frames_key = f"vision:{session_id}:frames"
+                        latest_raw = redis_client.lindex(frames_key, -1)
+                        deepface_data = {"emotion": "neutral", "confidence": 0.0}
+                        if latest_raw:
+                            try:
+                                latest_frame = json.loads(latest_raw)
+                                deepface_data = latest_frame.get("deepface", deepface_data)
+                            except:
+                                pass
+                        
+                        # Send result back with both FER and DeepFace
                         await websocket.send_json({
                             "type": "analysis",
+                            "fer": {
+                                "emotion": result.get("behavioral_tag", "NEUTRAL").lower(), # FER maps this
+                                "confidence": result.get("confidence_score", 0.0)
+                            },
+                            "deepface": deepface_data,
                             **result
                         })
                 

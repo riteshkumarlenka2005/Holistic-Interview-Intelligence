@@ -58,7 +58,7 @@ passlib==1.7.4
 prometheus_client==0.25.0
 prompt_toolkit==3.0.52
 propcache==0.5.2
-protobuf<5,>=4.25.3
+protobuf>=4.25.3
 pyasn1==0.6.3
 pycparser==3.0
 pydantic==2.13.4
@@ -98,11 +98,11 @@ wsproto==1.3.2
 yarl==1.24.2
 opencv-python-headless==4.10.0.84
 fer==22.5.1
-mediapipe==0.10.14
+mediapipe>=0.10.30
+deepface==0.0.100
 transformers==4.40.1
 moviepy<2.0.0
-setuptools<70.0.0
-tensorflow-cpu==2.16.1
-scipy==1.13.1
-jax==0.4.28
-jaxlib==0.4.28
+tensorflow-cpu>=2.20.0
+scipy>=1.13.1
+jax>=0.4.28
+jaxlib>=0.4.28

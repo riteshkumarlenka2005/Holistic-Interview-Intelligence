@@ -49,6 +49,7 @@ class CoachingHint:
 
 class CoachingEngine:
     COOLDOWN_SECONDS = 15  # Per-metric cooldown to avoid spamming
+    EMOTION_COOLDOWN_SECONDS = 20 # Longer cooldown for emotional hints
 
     # Thresholds
     LOW_EYE_CONTACT_THRESHOLD   = 40   # % below this triggers warning
@@ -62,11 +63,12 @@ class CoachingEngine:
         # session_id → { metric → last_triggered_timestamp }
         self._last_triggered: Dict[str, Dict[str, float]] = {}
 
-    def _can_trigger(self, session_id: str, metric: str) -> bool:
+    def _can_trigger(self, session_id: str, metric: str, custom_cooldown: int = None) -> bool:
         """Returns True if cooldown has elapsed for this metric in this session."""
         session = self._last_triggered.setdefault(session_id, {})
         last = session.get(metric, 0)
-        if time.time() - last >= self.COOLDOWN_SECONDS:
+        cooldown = custom_cooldown if custom_cooldown is not None else self.COOLDOWN_SECONDS
+        if time.time() - last >= cooldown:
             session[metric] = time.time()
             return True
         return False
@@ -87,6 +89,33 @@ class CoachingEngine:
             List of hint dicts ready to emit over WebSocket.
         """
         hints = []
+        
+        # Extract metrics for combined scoring
+        eye = metrics.get("eye_contact_percent")
+        stability = metrics.get("head_stability_score")
+        emotion = metrics.get("emotion")
+        emotion_conf = metrics.get("emotion_confidence", 0.0)
+
+        # ---------------------------------------------------------------------
+        # Emotion & Behavioral Combined Coaching
+        # ---------------------------------------------------------------------
+        if emotion == "happy" and emotion_conf >= 50.0:
+            if self._can_trigger(session_id, "emotion_happy", self.EMOTION_COOLDOWN_SECONDS):
+                hints.append(CoachingHint(
+                    message="Great smile! It shows confidence.",
+                    severity=CoachingSeverity.INFO,
+                    metric="emotion_happy",
+                ).to_dict())
+                
+        elif emotion in ["fear", "sad", "nervous"] and emotion_conf >= 50.0:
+            # Combined Confidence Score: Only trigger if they also look away or fidget
+            if (eye is not None and eye < 60) or (stability is not None and stability < 60):
+                if self._can_trigger(session_id, "emotion_nervous", self.EMOTION_COOLDOWN_SECONDS):
+                    hints.append(CoachingHint(
+                        message="Take a deep breath. You're doing great.",
+                        severity=CoachingSeverity.INFO,
+                        metric="emotion_nervous",
+                    ).to_dict())
 
         # 1. Multiple faces — CRITICAL (integrity concern)
         if metrics.get("face_count", 1) > 1:
@@ -137,7 +166,6 @@ class CoachingEngine:
                 ).to_dict())
 
         # 6. Head jitter / instability — INFO
-        stability = metrics.get("head_stability_score")
         if stability is not None and stability < self.LOW_HEAD_STABILITY_THRESHOLD:
             if self._can_trigger(session_id, "head_stability"):
                 hints.append(CoachingHint(
