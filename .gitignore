@@ -75,3 +75,8 @@ build-check.txt
 # Tool-specific
 ############################
 */.vibe/ignored/*
+
+############################
+# Models
+############################
+demos/models/
