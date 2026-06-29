@@ -34,8 +34,49 @@ from mediapipe.tasks.python.vision import (
     FaceLandmarkerOptions,
     FaceLandmarksConnections,
     RunningMode,
-    drawing_utils,
 )
+import cv2 as _cv2
+
+class _DrawingUtils:
+    """Drop-in replacement for mp.solutions.drawing_utils using plain OpenCV.
+    Works with mediapipe.tasks (0.10.x) which no longer ships mp.solutions."""
+
+    class DrawingSpec:
+        def __init__(self, color=(0, 255, 0), thickness=1, circle_radius=1):
+            self.color = color
+            self.thickness = thickness
+            self.circle_radius = circle_radius
+
+    def draw_landmarks(self, image, landmark_list, connections=None,
+                       landmark_drawing_spec=None, connection_drawing_spec=None):
+        if landmark_list is None:
+            return
+        h, w = image.shape[:2]
+        conn_spec = connection_drawing_spec or self.DrawingSpec()
+        lm_spec = landmark_drawing_spec or self.DrawingSpec(color=(0, 255, 0), circle_radius=1)
+
+        # Draw connections
+        if connections:
+            for conn in connections:
+                # Tasks API: Connection(start=N, end=M); old API: (N, M) tuple
+                if hasattr(conn, 'start'):
+                    start_idx, end_idx = conn.start, conn.end
+                else:
+                    start_idx, end_idx = conn
+                if start_idx < len(landmark_list) and end_idx < len(landmark_list):
+                    s = landmark_list[start_idx]
+                    e = landmark_list[end_idx]
+                    pt1 = (int(s.x * w), int(s.y * h))
+                    pt2 = (int(e.x * w), int(e.y * h))
+                    _cv2.line(image, pt1, pt2, conn_spec.color, conn_spec.thickness)
+
+        # Draw landmarks
+        if landmark_drawing_spec is not None:
+            for lm in landmark_list:
+                cx, cy = int(lm.x * w), int(lm.y * h)
+                _cv2.circle(image, (cx, cy), lm_spec.circle_radius, lm_spec.color, -1)
+
+drawing_utils = _DrawingUtils()
 
 # ─────────────────────────────────────────────
 # Model
